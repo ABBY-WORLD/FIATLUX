@@ -154,7 +154,7 @@
 
         let depthFactor = (p.z + sphereRadius) / (2 * sphereRadius);
         let brightness = depthFactor * 255;
-        if (p.z < 0) brightness *= 0.6; // Adjust backside brightness directly
+        if (p.z < 0) brightness *= 0.9; // Adjust backside brightness directly
 
         let fontSize = p.z > 0 ? (8 + 6 * scale) : (6 + 4 * scale);
         ctx.fillStyle = `rgb(${brightness},${brightness},${brightness})`;
