@@ -20,7 +20,7 @@
       left: 10px;
       padding: 5px;
       color: #fff;
-      font-size: 10px; /* Half the previous size */
+      font-size: 10px;
       z-index: 10;
     }
     #controls label {
@@ -53,12 +53,11 @@
       padding: 4px;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 10px; /* Match smaller text */
+      font-size: 10px;
     }
   </style>
 </head>
 <body onclick="startMusic()">
-  <!-- Controls -->
   <div id="controls">
     <label>Number of Points: <input type="range" id="numPointsSlider" min="50" max="400" value="120"><span id="numPointsVal">120</span></label>
     <label>Rotation X: <input type="range" id="rotXSlider" min="0.001" max="0.01" step="0.001" value="0.002"><span id="rotXVal">0.002</span></label>
@@ -154,7 +153,14 @@
 
         let depthFactor = (p.z + sphereRadius) / (2 * sphereRadius);
         let brightness = depthFactor * 255;
-        if (p.z < 0) brightness *= 0.9; // Adjust backside brightness directly
+
+        // 🎯 **Fix: Adjusting backside visibility naturally & ensuring correct depth**
+        if (p.z < 0) {
+          brightness = Math.max(80, depthFactor * 180); // Increase visibility, but keep subtle
+          ctx.globalAlpha = 0.5; // Makes back letters more transparent
+        } else {
+          ctx.globalAlpha = 1.0; // Front letters are fully visible
+        }
 
         let fontSize = p.z > 0 ? (8 + 6 * scale) : (6 + 4 * scale);
         ctx.fillStyle = `rgb(${brightness},${brightness},${brightness})`;
@@ -164,6 +170,7 @@
         ctx.fillText(p.word, x2D, y2D);
       });
 
+      ctx.globalAlpha = 1.0; // Reset alpha to avoid issues
       angleX += rotationSpeedX;
       angleY += rotationSpeedY;
       requestAnimationFrame(draw);
