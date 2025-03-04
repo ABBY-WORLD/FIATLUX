@@ -57,15 +57,14 @@
     }
   </style>
 </head>
-<body>
+<body onclick="startMusic()">
   <!-- Controls -->
   <div id="controls">
     <label>Number of Points: <input type="range" id="numPointsSlider" min="50" max="400" value="120"><span id="numPointsVal">120</span></label>
     <label>Rotation X: <input type="range" id="rotXSlider" min="0.001" max="0.01" step="0.001" value="0.002"><span id="rotXVal">0.002</span></label>
     <label>Rotation Y: <input type="range" id="rotYSlider" min="0.001" max="0.01" step="0.001" value="0.002"><span id="rotYVal">0.002</span></label>
     <label>Focal Length: <input type="range" id="focalSlider" min="300" max="3000" value="2000"><span id="focalVal">2000</span></label>
-    <label>Backside Brightness: <input type="range" id="backBrightnessSlider" min="0.1" max="1" step="0.05" value="0.3"><span id="backBrightnessVal">0.3</span></label>
-    <button id="musicBtn" onclick="toggleMusic()">Play Music</button>
+    <button id="musicBtn" onclick="toggleMusic()">Mute Music</button>
   </div>
 
   <!-- Background Music -->
@@ -77,12 +76,31 @@
   <script>
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
+    const bgMusic = document.getElementById("bgMusic");
+    const musicBtn = document.getElementById("musicBtn");
+    let musicStarted = false;
+
+    function startMusic() {
+      if (!musicStarted) {
+        bgMusic.play().catch(error => console.log("Audio playback error:", error));
+        musicStarted = true;
+      }
+    }
+
+    function toggleMusic() {
+      if (bgMusic.paused) {
+        bgMusic.play();
+        musicBtn.textContent = "Mute Music";
+      } else {
+        bgMusic.pause();
+        musicBtn.textContent = "Play Music";
+      }
+    }
 
     let numPoints = 120;
     let rotationSpeedX = 0.002;
     let rotationSpeedY = 0.002;
     let focalLength = 2000;
-    let backsideBrightnessFactor = 0.3;
     let sphereRadius = Math.min(window.innerWidth, window.innerHeight) * 0.4;
     let points = [];
 
@@ -136,7 +154,7 @@
 
         let depthFactor = (p.z + sphereRadius) / (2 * sphereRadius);
         let brightness = depthFactor * 255;
-        if (p.z < 0) brightness = 80 + depthFactor * (100 * backsideBrightnessFactor);
+        if (p.z < 0) brightness *= 0.3; // Adjust backside brightness directly
 
         let fontSize = p.z > 0 ? (8 + 6 * scale) : (6 + 4 * scale);
         ctx.fillStyle = `rgb(${brightness},${brightness},${brightness})`;
@@ -152,20 +170,6 @@
     }
 
     draw();
-
-    // ✅ FIXED MUSIC FUNCTION
-    const bgMusic = document.getElementById("bgMusic");
-    const musicBtn = document.getElementById("musicBtn");
-
-    function toggleMusic() {
-      if (bgMusic.paused) {
-        bgMusic.play().catch(error => console.log("Audio playback error:", error));
-        musicBtn.textContent = "Mute Music";
-      } else {
-        bgMusic.pause();
-        musicBtn.textContent = "Play Music";
-      }
-    }
 
     // Slider Event Listeners
     document.getElementById("numPointsSlider").oninput = function() {
@@ -184,10 +188,6 @@
     document.getElementById("focalSlider").oninput = function() {
       focalLength = parseInt(this.value);
       document.getElementById("focalVal").textContent = this.value;
-    };
-    document.getElementById("backBrightnessSlider").oninput = function() {
-      backsideBrightnessFactor = parseFloat(this.value);
-      document.getElementById("backBrightnessVal").textContent = this.value;
     };
   </script>
 </body>
