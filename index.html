@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rotating ABBY WORLD Sphere</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: black;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      display: block;
+    }
+    #controls {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      padding: 5px;
+      color: #fff;
+      font-size: 10px; /* Half the previous size */
+      z-index: 10;
+    }
+    #controls label {
+      display: block;
+      margin-bottom: 4px;
+    }
+    #controls input[type="range"] {
+      -webkit-appearance: none;
+      width: 120px;
+      height: 2px; /* Thinner for minimal look */
+      background: white;
+      border: none;
+      outline: none;
+    }
+    #controls input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 10px;
+      height: 10px;
+      background: white;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    #musicBtn {
+      display: block;
+      margin-top: 5px;
+      background: transparent;
+      color: white;
+      border: 1px solid white;
+      padding: 4px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px; /* Match smaller text */
+    }
+  </style>
+</head>
+<body>
+  <!-- Controls -->
+  <div id="controls">
+    <label>Number of Points: <input type="range" id="numPointsSlider" min="50" max="400" value="120"><span id="numPointsVal">120</span></label>
+    <label>Rotation X: <input type="range" id="rotXSlider" min="0.001" max="0.01" step="0.001" value="0.002"><span id="rotXVal">0.002</span></label>
+    <label>Rotation Y: <input type="range" id="rotYSlider" min="0.001" max="0.01" step="0.001" value="0.002"><span id="rotYVal">0.002</span></label>
+    <label>Focal Length: <input type="range" id="focalSlider" min="300" max="3000" value="2000"><span id="focalVal">2000</span></label>
+    <label>Backside Brightness: <input type="range" id="backBrightnessSlider" min="0.1" max="1" step="0.05" value="0.3"><span id="backBrightnessVal">0.3</span></label>
+    <button id="musicBtn" onclick="toggleMusic()">Play Music</button>
+  </div>
+
+  <!-- Background Music -->
+  <audio id="bgMusic" loop>
+    <source src="https://raw.githubusercontent.com/ABBY-WORLD/SPACE/main/SPACE-music.mp" type="audio/mpeg">
+  </audio>
+
+  <canvas id="canvas"></canvas>
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    let numPoints = 120;
+    let rotationSpeedX = 0.002;
+    let rotationSpeedY = 0.002;
+    let focalLength = 2000;
+    let backsideBrightnessFactor = 0.3;
+    let sphereRadius = Math.min(window.innerWidth, window.innerHeight) * 0.4;
+    let points = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      sphereRadius = Math.min(canvas.width, canvas.height) * 0.4;
+      points = generateFibonacciSphere(numPoints);
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    function generateFibonacciSphere(n) {
+      let pts = [];
+      const phi = Math.PI * (3 - Math.sqrt(5));
+      for (let i = 0; i < n; i++) {
+        let y = 1 - (i / (n - 1)) * 2;
+        let radius = Math.sqrt(1 - y * y);
+        let theta = phi * i;
+        let x = Math.cos(theta) * radius;
+        let z = Math.sin(theta) * radius;
+        let word = Math.random() > 0.5 ? "ABBY" : "WORLD";
+        pts.push({ x: x * sphereRadius, y: y * sphereRadius, z: z * sphereRadius, word: word });
+      }
+      return pts;
+    }
+
+    function rotateY(point, angle) {
+      const cosA = Math.cos(angle), sinA = Math.sin(angle);
+      return { x: cosA * point.x + sinA * point.z, y: point.y, z: -sinA * point.x + cosA * point.z, word: point.word };
+    }
+
+    function rotateX(point, angle) {
+      const cosA = Math.cos(angle), sinA = Math.sin(angle);
+      return { x: point.x, y: cosA * point.y - sinA * point.z, z: sinA * point.y + cosA * point.z, word: point.word };
+    }
+
+    let angleX = 0, angleY = 0;
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      let transformedPoints = points.map(p => rotateX(rotateY(p, angleY), angleX));
+      transformedPoints.sort((a, b) => b.z - a.z);
+
+      transformedPoints.forEach(p => {
+        let scale = focalLength / (focalLength + Math.abs(p.z));
+        let x2D = canvas.width / 2 + p.x * scale;
+        let y2D = canvas.height / 2 + p.y * scale;
+
+        let depthFactor = (p.z + sphereRadius) / (2 * sphereRadius);
+        let brightness = depthFactor * 255;
+        if (p.z < 0) brightness = 80 + depthFactor * (100 * backsideBrightnessFactor);
+
+        let fontSize = p.z > 0 ? (8 + 6 * scale) : (6 + 4 * scale);
+        ctx.fillStyle = `rgb(${brightness},${brightness},${brightness})`;
+        ctx.font = `${fontSize}px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(p.word, x2D, y2D);
+      });
+
+      angleX += rotationSpeedX;
+      angleY += rotationSpeedY;
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+
+    // ✅ FIXED MUSIC FUNCTION
+    const bgMusic = document.getElementById("bgMusic");
+    const musicBtn = document.getElementById("musicBtn");
+
+    function toggleMusic() {
+      if (bgMusic.paused) {
+        bgMusic.play().catch(error => console.log("Audio playback error:", error));
+        musicBtn.textContent = "Mute Music";
+      } else {
+        bgMusic.pause();
+        musicBtn.textContent = "Play Music";
+      }
+    }
+
+    // Slider Event Listeners
+    document.getElementById("numPointsSlider").oninput = function() {
+      numPoints = parseInt(this.value);
+      document.getElementById("numPointsVal").textContent = this.value;
+      points = generateFibonacciSphere(numPoints);
+    };
+    document.getElementById("rotXSlider").oninput = function() {
+      rotationSpeedX = parseFloat(this.value);
+      document.getElementById("rotXVal").textContent = this.value;
+    };
+    document.getElementById("rotYSlider").oninput = function() {
+      rotationSpeedY = parseFloat(this.value);
+      document.getElementById("rotYVal").textContent = this.value;
+    };
+    document.getElementById("focalSlider").oninput = function() {
+      focalLength = parseInt(this.value);
+      document.getElementById("focalVal").textContent = this.value;
+    };
+    document.getElementById("backBrightnessSlider").oninput = function() {
+      backsideBrightnessFactor = parseFloat(this.value);
+      document.getElementById("backBrightnessVal").textContent = this.value;
+    };
+  </script>
+</body>
+</html>
